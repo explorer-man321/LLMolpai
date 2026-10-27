@@ -6,6 +6,8 @@
     "deploy": "wrangler deploy",
     "dev": "wrangler dev",
     "start": "wrangler dev",
+    "chat": "node scripts/chat.mjs",
+    "setup": "node scripts/setup.mjs",
     "test": "vitest",
     "cf-typegen": "wrangler types"
   },
@@ -15,5 +17,9 @@
     "typescript": "^5.5.2",
     "vitest": "~5.0.3",
     "wrangler": "^4.153.0"
+  },
+  "dependencies": {
+    "ai": "^7.0.154",
+    "workers-ai-provider": "^4.0.1"
   }
 }
