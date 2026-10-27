@@ -6,12 +6,12 @@ import { dirname, resolve } from "node:path";
 import readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 
-const defaultWorkerUrl = "https://hello-ai.imminent-hearing.workers.dev";
+const defaultWorkerUrl = "https://hello-ai.okok3223312.workers.dev";
 const url = (process.argv[2] ?? process.env.WORKER_URL ?? defaultWorkerUrl).replace(/\/$/, "");
 const workerHostname = new URL(url).hostname;
 const isLocalWorker = workerHostname === "localhost" || workerHostname === "127.0.0.1";
 const maxSessionTokens = 2000;
-const messages = [];
+let sessionId = crypto.randomUUID();
 let sessionTokens = 0;
 let localWorker;
 
@@ -95,35 +95,26 @@ try {
 			throw error;
 		}
 		if (prompt === "/exit") break;
-		if (prompt === "/newchat") {
-			messages.length = 0;
-			sessionTokens = 0;
-			console.log("\nStarted a new chat. Session token usage has been reset.\n");
-			continue;
-		}
 		if (!prompt) continue;
 		if (sessionTokens >= maxSessionTokens) {
 			console.log(`\nSession limit reached: ${sessionTokens}/${maxSessionTokens} tokens.\n`);
 			break;
 		}
 
-		messages.push({ role: "user", content: prompt });
 		stopThinkingAnimation = startThinkingAnimation();
 		const response = await fetch(`${url}/chat`, {
 			method: "POST",
 			headers: { "content-type": "application/json" },
-			body: JSON.stringify({ messages, sessionTokens }),
+			body: JSON.stringify({ sessionId, message: prompt }),
 		});
 		if (!response.ok) {
 			stopThinkingAnimation();
 			console.error(formatResponseError(response, await response.text()));
-			messages.pop();
 			continue;
 		}
 		if (!response.body) {
 			stopThinkingAnimation();
 			console.error("Request failed: the Worker returned an empty response stream.");
-			messages.pop();
 			continue;
 		}
 
@@ -162,22 +153,23 @@ try {
 		stopThinkingAnimation();
 		if (streamError) {
 			console.error(`\nChat request failed: ${streamError}`);
-			messages.pop();
 			continue;
 		}
 		if (!assistantText) {
 			console.error(
 				"\nNo visible answer was generated. Please retry the request.",
 			);
-			messages.pop();
 			continue;
 		}
-		if (assistantText) messages.push({ role: "assistant", content: assistantText });
 		if (usage) {
 			sessionTokens = usage.sessionTokens;
 			console.log(
 				`\n[token usage: prompt ${usage.promptTokens} + context ${usage.contextTokens} = model input ${usage.inputTokens}; output ${usage.outputTokens}; session counted ${usage.totalTokens}/${usage.maxSessionTokens}]\n`,
 			);
+			if (sessionTokens >= maxSessionTokens) {
+				console.log(`Session limit reached: ${sessionTokens}/${maxSessionTokens} tokens.\n`);
+				break;
+			}
 		}
 	}
 } catch (error) {

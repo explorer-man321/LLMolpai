@@ -5,7 +5,7 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "hello-ai",
-	"account_id": "60dad5105e31ee69daebcf8bea767f7a",
+	"account_id": "12962eb745a50410f682ed2903b6231b",
 	"main": "src/index.ts",
 	"compatibility_date": "2026-10-23",
 	"observability": {
@@ -43,5 +43,13 @@
 	"ai": {
 		"binding": "AI",
 		"remote": true
-	}
+	},
+	"durable_objects": {
+		"bindings": [
+			{ "name": "CHAT_SESSIONS", "class_name": "ChatSession" }
+		]
+	},
+	"migrations": [
+		{ "tag": "v1", "new_sqlite_classes": ["ChatSession"] }
+	]
 }

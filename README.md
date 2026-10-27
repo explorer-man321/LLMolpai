@@ -24,6 +24,47 @@ Log in to Cloudflare if needed:
 npx wrangler login
 ```
 
+### Find your Cloudflare Account ID
+
+The Account ID is a 32-character hexadecimal value. You can find it in any of these ways:
+
+- In the Cloudflare dashboard URL after selecting your account:
+  `https://dash.cloudflare.com/ACCOUNT_ID/...`
+- In **Workers & Pages** when viewing your account or Worker.
+- From the terminal:
+
+  ```bash
+  npx wrangler whoami
+  ```
+
+  Look for the `Account ID` column.
+
+Do not use a Worker deployment ID or version ID as the Account ID.
+
+### Find or register your workers.dev subdomain
+
+Your Worker URL normally uses this format:
+
+```text
+https://hello-ai.YOUR_SUBDOMAIN.workers.dev
+```
+
+To find your existing workers.dev subdomain:
+
+1. Open the Cloudflare dashboard.
+2. Select the account that owns the Worker.
+3. Go to **Workers & Pages**.
+4. Open **Overview** or **Workers settings**.
+5. Look for the `workers.dev` subdomain or the public Worker URL.
+
+You can also inspect it with Wrangler:
+
+```bash
+npx wrangler subdomain get
+```
+
+If you do not have a workers.dev subdomain yet, register one from the Cloudflare dashboard under **Workers & Pages** → **Overview** → **workers.dev subdomain**. A workers.dev subdomain is required for some Wrangler remote development workflows.
+
 Run the interactive setup:
 
 ```bash
@@ -53,7 +94,6 @@ Commands inside the chat:
 
 | Command | Action |
 |---|---|
-| `/newchat` | Clear the current conversation and reset session token usage |
 | `/exit` | Exit the chat |
 
 You can override the configured Worker URL:
@@ -88,21 +128,25 @@ The setup command stores the Cloudflare account ID in [wrangler.jsonc](./wrangle
 The Worker exposes:
 
 - `GET /` — health and model information
-- `POST /chat` — streaming Server-Sent Events chat endpoint
+- `POST /chat` — streaming Server-Sent Events chat endpoint; send `{ "sessionId": "...", "message": "..." }`
 
 Example API request:
 
 ```bash
 curl -N https://hello-ai.example.workers.dev/chat \
   -H "content-type: application/json" \
-  -d '{"messages":[{"role":"user","content":"Hello"}],"sessionTokens":0}'
+  -d '{"sessionId":"my-chat","message":"Hello"}'
 ```
+
+The CLI creates a unique `sessionId` for each chat. The Worker stores that session's context and cumulative visible token usage in a Durable Object. When the cumulative limit is reached, the CLI stops automatically.
 
 ## Token behavior
 
 The application session limit is 2,000 visible tokens. Hidden reasoning is removed from the response and is not added to application `sessionTokens`. The model has a separate reasoning allowance, and visible output is clipped at the remaining session budget with a notice.
 
 The provider may still count or bill internal reasoning tokens according to the Workers AI plan. If the account reaches its daily free allocation, requests fail with Cloudflare error `4006`; use an account with remaining quota or enable the appropriate paid plan.
+
+When the visible limit is reached, the Worker stops forwarding output immediately and closes the chat stream. The model may still have already spent time generating hidden reasoning before the first visible text, so the first response can still take time even though the final limit handling is immediate.
 
 ## Troubleshooting
 
