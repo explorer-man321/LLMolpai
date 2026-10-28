@@ -144,6 +144,13 @@ The CLI creates a unique `sessionId` for each chat. The Worker stores that sessi
 
 The application session limit is 2,000 visible tokens. Hidden reasoning is removed from the response and is not added to application `sessionTokens`. The model has a separate reasoning allowance, and visible output is clipped at the remaining session budget with a notice.
 
+The model uses stable exam-style sampling parameters:
+
+- `temperature: 0.2` for more consistent, precise answers
+- `topP: 0.9` to focus sampling on likely continuations
+
+The existing session-based output limit remains in effect; no separate `maxTokens: 1536` setting is applied.
+
 The provider may still count or bill internal reasoning tokens according to the Workers AI plan. If the account reaches its daily free allocation, requests fail with Cloudflare error `4006`; use an account with remaining quota or enable the appropriate paid plan.
 
 When the visible limit is reached, the Worker stops forwarding output immediately and closes the chat stream. The model may still have already spent time generating hidden reasoning before the first visible text, so the first response can still take time even though the final limit handling is immediate.

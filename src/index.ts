@@ -3,7 +3,7 @@ import { streamText } from "ai";
 import { createWorkersAI } from "workers-ai-provider";
 
 const MAX_SESSION_TOKENS = 2000;
-const REASONING_TOKEN_BUDGET = 4096;
+const REASONING_TOKEN_BUDGET = 1024;
 const MODEL = "@cf/deepseek-ai/deepseek-r1-distill-qwen-32b";
 const SYSTEM_PROMPT = `You are an offline AI engineering assistant serving contestants in the competitive AI Olympiad (OLP AI) environment, running on local hardware.
 
@@ -129,7 +129,8 @@ export class ChatSession extends DurableObject<Env> {
 		const result = streamText({
 			model: createWorkersAI({ binding: this.env.AI })(MODEL),
 			system: SYSTEM_PROMPT,
-			temperature: 1,
+			temperature: 0.2,
+			topP: 0.9,
 			maxOutputTokens: remainingTokens + REASONING_TOKEN_BUDGET,
 			messages,
 		});
